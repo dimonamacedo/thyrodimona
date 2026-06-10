@@ -1,0 +1,1526 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ThyroDimona® ENCOR — USG Tireoide com Doppler</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0e1116;--panel:#161d26;--panel2:#1d2630;--line:#2a3642;
+  --ink:#e8edf2;--dim:#9aa9b8;--accent:#3fb6a8;--accent-d:#2a8478;
+  --warn:#e8554e;--calc:#7aa2c8;--chip:#222e3a;--chip-on:#2a8478;
+  --tr1:#2ecc71;--tr2:#27ae60;--tr3:#f39c12;--tr4:#e67e22;--tr5:#e74c3c;
+}
+body{background:var(--bg);color:var(--ink);font-family:'Segoe UI',Arial,sans-serif;font-size:13px;min-height:100vh}
+
+/* TOPBAR */
+.topbar{background:var(--panel);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:6px;padding:8px 14px;flex-wrap:wrap;position:sticky;top:0;z-index:100}
+.topbar .brand{font-size:15px;font-weight:700;color:var(--accent);letter-spacing:.5px;margin-right:10px;white-space:nowrap}
+.topbar .brand span{color:var(--dim);font-weight:400;font-size:11px;display:block;line-height:1}
+.tbtn{background:var(--chip);border:1px solid var(--line);border-radius:5px;color:var(--ink);cursor:pointer;font-size:12px;padding:5px 11px;white-space:nowrap;transition:background .15s}
+.tbtn:hover{background:var(--panel2);border-color:var(--accent)}
+.tbtn.primary{background:var(--accent-d);border-color:var(--accent);color:#fff}
+.tbtn.primary:hover{background:var(--accent)}
+.tbtn.warn{background:#3a1a1a;border-color:var(--warn);color:var(--warn)}
+.sep{width:1px;height:22px;background:var(--line);margin:0 4px}
+
+/* MAIN LAYOUT */
+.main{display:grid;grid-template-columns:480px 1fr;min-height:calc(100vh - 48px);gap:0}
+@media(max-width:1100px){.main{grid-template-columns:420px 1fr}}
+@media(max-width:900px){.main{grid-template-columns:1fr;grid-template-rows:auto auto}}
+
+/* EDITOR */
+.editor{background:var(--panel);border-right:1px solid var(--line);padding:0;overflow-y:auto;max-height:calc(100vh - 48px)}
+.tabs{display:flex;background:var(--bg);border-bottom:1px solid var(--line)}
+.tab{flex:1;padding:9px 4px;text-align:center;cursor:pointer;font-size:11px;font-weight:600;color:var(--dim);letter-spacing:.3px;transition:all .15s;border-bottom:2px solid transparent}
+.tab:hover{color:var(--ink)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);background:var(--panel)}
+.tabcontent{display:none;padding:14px}
+.tabcontent.active{display:block}
+
+/* FORM ELEMENTS */
+.row{display:grid;gap:8px;margin-bottom:10px}
+.row.c2{grid-template-columns:1fr 1fr}
+.row.c3{grid-template-columns:1fr 1fr 1fr}
+.row.c4{grid-template-columns:1fr 1fr 1fr 1fr}
+.lbl{font-size:10px;font-weight:600;color:var(--dim);letter-spacing:.5px;text-transform:uppercase;margin-bottom:3px}
+input[type=text],input[type=number],input[type=date],select,textarea{
+  background:var(--chip);border:1px solid var(--line);border-radius:4px;
+  color:var(--ink);font-size:12px;padding:6px 8px;width:100%;outline:none;
+  font-family:inherit;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:52px;line-height:1.5}
+select option{background:var(--panel2)}
+.calc-val{background:var(--chip);border:1px solid var(--line);border-radius:4px;
+  color:var(--calc);font-size:12px;padding:6px 8px;font-weight:600}
+.calc-val.warn{color:var(--warn);border-color:var(--warn)}
+
+/* CHIPS */
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.chip{background:var(--chip);border:1px solid var(--line);border-radius:4px;
+  cursor:pointer;font-size:11px;padding:4px 9px;transition:all .12s;user-select:none}
+.chip:hover{border-color:var(--accent)}
+.chip.on{background:var(--chip-on);border-color:var(--accent);color:#e0faf5}
+.chip.danger.on{background:#3a1212;border-color:var(--warn);color:#faa}
+
+/* SECTION HEADERS */
+.sec{font-size:10px;font-weight:700;letter-spacing:1px;color:var(--accent);
+  text-transform:uppercase;padding:10px 0 6px;border-bottom:1px solid var(--line);margin-bottom:10px}
+.sec-minor{font-size:10px;font-weight:600;color:var(--dim);letter-spacing:.5px;
+  text-transform:uppercase;margin:10px 0 6px}
+
+/* NODULO CARD */
+.nod-card{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:12px;margin-bottom:10px;position:relative}
+.nod-card .nod-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.nod-badge{background:var(--accent-d);color:#fff;border-radius:3px;font-size:10px;font-weight:700;padding:2px 8px}
+.nod-del{background:none;border:none;color:var(--warn);cursor:pointer;font-size:16px;line-height:1;padding:2px 4px}
+.tirads-badge{border-radius:4px;font-size:11px;font-weight:700;padding:3px 10px;display:inline-block;margin-top:6px}
+.tr-1{background:#1a3a22;color:var(--tr1);border:1px solid var(--tr1)}
+.tr-2{background:#1a3a22;color:var(--tr2);border:1px solid var(--tr2)}
+.tr-3{background:#3a2a10;color:var(--tr3);border:1px solid var(--tr3)}
+.tr-4{background:#3a1e10;color:var(--tr4);border:1px solid var(--tr4)}
+.tr-5{background:#3a1212;color:var(--tr5);border:1px solid var(--tr5)}
+.tirads-conduta{font-size:10px;color:var(--dim);margin-top:4px;font-style:italic}
+
+/* DESCRIPTION EDITOR */
+.desc-seg{background:var(--panel2);border:1px solid var(--line);border-radius:5px;margin-bottom:8px;overflow:hidden}
+.desc-seg .seg-header{display:flex;align-items:center;gap:6px;padding:7px 10px;cursor:pointer;background:var(--chip);border-bottom:1px solid var(--line)}
+.desc-seg .seg-title{font-size:11px;font-weight:600;flex:1}
+.desc-seg .seg-toggle{font-size:10px;color:var(--dim)}
+.desc-seg textarea{border:none;border-radius:0;background:transparent;padding:8px 10px;min-height:60px;font-size:12px}
+.findings-row{display:flex;align-items:center;gap:6px;padding:4px 10px;border-top:1px solid var(--line)}
+.findings-row select{flex:1;font-size:11px;padding:4px 6px}
+.findings-row button{background:var(--accent-d);border:none;border-radius:3px;color:#fff;cursor:pointer;font-size:10px;padding:4px 8px;white-space:nowrap}
+
+/* CONCLUSION */
+.concl-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+.concl-chip{background:var(--chip);border:1px solid var(--line);border-radius:4px;
+  cursor:pointer;font-size:10px;padding:4px 8px;transition:all .12s}
+.concl-chip.on{background:var(--chip-on);border-color:var(--accent);color:#e0faf5}
+.comments-list{margin-top:10px}
+.comment-item{display:flex;align-items:flex-start;gap:8px;padding:6px;background:var(--chip);border-radius:4px;margin-bottom:5px;border:1px solid var(--line)}
+.comment-item label{font-size:11px;flex:1;line-height:1.4;cursor:pointer}
+
+/* PREVIEW PANE */
+.preview-pane{background:#8a8a8a;padding:24px;overflow-y:auto;display:flex;flex-direction:column;align-items:center;gap:24px;max-height:calc(100vh - 48px)}
+
+/* A4 */
+.a4{width:210mm;height:297mm;background:#fff;position:relative;color:#222;overflow:hidden;box-shadow:0 4px 24px #0006;flex-shrink:0}
+.a4 .bg{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:fill;opacity:1;pointer-events:none;z-index:0}
+.a4 .content{position:relative;z-index:1;padding:38mm 18mm 22mm;height:100%;display:flex;flex-direction:column}
+
+/* LAUDO CONTENT */
+.laudo-title{text-align:center;font-size:11pt;font-weight:700;letter-spacing:1.5px;color:#1a3a50;text-transform:uppercase;margin:4mm 0 3mm;border-top:1.5pt solid #1a3a50;border-bottom:1.5pt solid #1a3a50;padding:2mm 0}
+.laudo-dados{display:grid;grid-template-columns:1fr 1fr;gap:1mm 6mm;font-size:8pt;margin-bottom:3mm}
+.laudo-dados .dado-row{display:flex;gap:2mm}
+.laudo-dados .dado-label{font-weight:700;color:#555;white-space:nowrap}
+.laudo-dados .dado-val{color:#222}
+.dado-indicacao{font-size:8pt;margin-bottom:2mm}
+.dado-indicacao .dado-label{font-weight:700;color:#555}
+.laudo-divider{border:none;border-top:0.5pt solid #bbb;margin:2mm 0}
+.sec-titulo{font-size:9pt;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#1a3a50;margin:3mm 0 1mm}
+.desc-bloco{margin-bottom:2mm}
+.desc-bloco .desc-titulo{font-size:8pt;font-weight:700;color:#333;display:inline}
+.desc-bloco .desc-texto{font-size:8.5pt;color:#222;line-height:1.5;display:inline}
+.concl-texto{font-size:8.5pt;color:#222;line-height:1.6;margin-bottom:2mm}
+.obs-texto{font-size:7.5pt;color:#555;font-style:italic;line-height:1.4;margin-top:2mm}
+.medidas-tabela{width:100%;font-size:7.5pt;border-collapse:collapse;margin:2mm 0}
+.medidas-tabela th{background:#1a3a50;color:#fff;padding:2mm 3mm;text-align:center;font-weight:600}
+.medidas-tabela td{border:0.5pt solid #ccc;padding:1.5mm 3mm;text-align:center}
+.medidas-tabela tr:nth-child(even) td{background:#f5f8fa}
+.vol-resumo{font-size:8pt;color:#1a3a50;font-weight:600;margin:1mm 0}
+.sig-area{margin-top:8mm;padding-top:4mm;display:flex;justify-content:center}
+.sig-block{text-align:center}
+.sig-line{border-top:1pt solid #555;width:60mm;margin:0 auto 1mm}
+.sig-name{font-size:8.5pt;font-weight:700;color:#222}
+.sig-qual{font-size:7.5pt;color:#555}
+.brandfoot{text-align:center;font-size:6.5pt;color:#999;margin-top:3mm;letter-spacing:.5px}
+.tirads-table{width:100%;font-size:7pt;border-collapse:collapse;margin:1mm 0}
+.tirads-table th{background:#2a5a7a;color:#fff;padding:1.5mm 2mm;font-size:6.5pt}
+.tirads-table td{border:0.5pt solid #ccc;padding:1.5mm 2mm}
+.nodulo-header-laudo{font-size:8pt;font-weight:700;color:#1a3a50;margin:2mm 0 1mm;border-bottom:.5pt solid #ccc;padding-bottom:1mm}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:#000a;z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:20px;width:680px;max-width:96vw;max-height:88vh;overflow-y:auto}
+.modal h2{font-size:14px;margin-bottom:14px;color:var(--accent)}
+.modal-close{float:right;background:none;border:none;color:var(--dim);cursor:pointer;font-size:18px;margin-top:-4px}
+.banco-table{width:100%;border-collapse:collapse;font-size:12px}
+.banco-table th{background:var(--chip);padding:7px 10px;text-align:left;font-size:11px;color:var(--dim);letter-spacing:.3px}
+.banco-table td{padding:7px 10px;border-bottom:1px solid var(--line)}
+.banco-table tr:hover td{background:var(--panel2)}
+.banco-table td button{background:none;border:none;color:var(--accent);cursor:pointer;font-size:11px;padding:1px 4px}
+.banco-table td button.del{color:var(--warn)}
+@media print{
+  body>*{display:none!important}
+  .a4-print-wrap{display:block!important}
+  .a4{box-shadow:none!important;width:210mm!important;height:297mm!important}
+  @page{size:A4;margin:0}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="brand">ThyroDimona® <span>ENCOR — Radiologia</span></div>
+  <div class="sep"></div>
+  <button class="tbtn" onclick="novoPaciente()">📋 Novo</button>
+  <button class="tbtn" onclick="salvarPaciente()">💾 Salvar</button>
+  <button class="tbtn" onclick="abrirBanco()">🗂 Banco</button>
+  <button class="tbtn" onclick="exportarJSON()">📤 Exportar</button>
+  <button class="tbtn" onclick="importarJSON()">📥 Importar</button>
+  <div class="sep"></div>
+  <button class="tbtn primary" onclick="gerarPDF()">🖨 Gerar PDF</button>
+  <button class="tbtn" onclick="limparForm()">🗑 Limpar</button>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- EDITOR -->
+<div class="editor">
+  <div class="tabs">
+    <div class="tab active" onclick="setTab(0)">1. Identificação</div>
+    <div class="tab" onclick="setTab(1)">2. Medidas</div>
+    <div class="tab" onclick="setTab(2)">3. Descrição</div>
+    <div class="tab" onclick="setTab(3)">4. Conclusão</div>
+  </div>
+
+  <!-- ABA 1: IDENTIFICAÇÃO -->
+  <div class="tabcontent active" id="tab0">
+    <div class="sec">Dados do Paciente</div>
+    <div class="row"><div><div class="lbl">Nome do Paciente</div><input type="text" id="paciente" oninput="render()" placeholder="Nome completo"></div></div>
+    <div class="row c3">
+      <div><div class="lbl">Idade</div><input type="text" id="idade" oninput="render()" placeholder="Ex: 42"></div>
+      <div><div class="lbl">Sexo</div>
+        <select id="sexo" onchange="computeVolumes();render()">
+          <option value="F">Feminino</option>
+          <option value="M">Masculino</option>
+        </select>
+      </div>
+      <div><div class="lbl">Data</div><input type="date" id="data" oninput="render()"></div>
+    </div>
+    <div class="row c2">
+      <div><div class="lbl">Convênio</div><input type="text" id="convenio" oninput="render()" placeholder="Particular"></div>
+      <div><div class="lbl">Nº Exame</div><input type="text" id="numExame" oninput="render()" placeholder="Opcional"></div>
+    </div>
+    <div class="row c2">
+      <div><div class="lbl">Médico Solicitante</div><input type="text" id="solicitante" oninput="render()" placeholder="Dr(a)."></div>
+      <div><div class="lbl">Médico Executante</div><input type="text" id="executante" oninput="render()" value="DRA. DIMONA MACÊDO"></div>
+    </div>
+    <div class="sec">Indicação e Histórico</div>
+    <div class="row"><div>
+      <div class="lbl">Indicação Clínica</div>
+      <div style="display:flex;gap:6px;margin-bottom:5px">
+        <select id="indicacao-select" style="flex:1" onchange="inserirIndicacao()">
+          <option value="">— Selecionar indicação frequente —</option>
+          <option>Nódulo tireoidiano palpável</option>
+          <option>Rastreamento de nódulo tireoidiano</option>
+          <option>Controle de nódulo tireoidiano conhecido</option>
+          <option>Investigação de bócio</option>
+          <option>Avaliação de hipotireoidismo / tireoidite de Hashimoto</option>
+          <option>Avaliação de hipertireoidismo / doença de Graves</option>
+          <option>Controle pós-tireoidectomia</option>
+          <option>Avaliação de linfonodomegalia cervical</option>
+          <option>Investigação de tireoidite subaguda</option>
+          <option>Avaliação pré-operatória de tireoide</option>
+        </select>
+      </div>
+      <textarea id="indicacao" oninput="render()" placeholder="Ou digite livremente... (opcional)"></textarea>
+    </div></div>
+    <div class="row"><div>
+      <div class="lbl">Histórico Tireoidiano Relevante</div>
+      <div class="chips" id="chips-historico">
+        <div class="chip" data-id="ht_nenhum" onclick="toggleChip(this,'historico')">Nenhum</div>
+        <div class="chip" data-id="ht_tireoidectomia" onclick="toggleChip(this,'historico')">Tireoidectomia prévia</div>
+        <div class="chip" data-id="ht_radioiodo" onclick="toggleChip(this,'historico')">Radioiodoterapia prévia</div>
+        <div class="chip" data-id="ht_tireoidite" onclick="toggleChip(this,'historico')">Tireoidite conhecida</div>
+        <div class="chip" data-id="ht_hashimoto" onclick="toggleChip(this,'historico')">Hashimoto</div>
+        <div class="chip" data-id="ht_graves" onclick="toggleChip(this,'historico')">Doença de Graves</div>
+        <div class="chip" data-id="ht_hipotireoidismo" onclick="toggleChip(this,'historico')">Hipotireoidismo</div>
+        <div class="chip" data-id="ht_hipertireoidismo" onclick="toggleChip(this,'historico')">Hipertireoidismo</div>
+        <div class="chip" data-id="ht_nodulos" onclick="toggleChip(this,'historico')">Nódulo(s) tireoidiano(s)</div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- ABA 2: MEDIDAS -->
+  <div class="tabcontent" id="tab1">
+    <div class="sec">Volumetria da Glândula</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <!-- Lobo Direito -->
+      <div>
+        <div class="sec-minor">Lobo Direito</div>
+        <div class="row c3">
+          <div><div class="lbl">Comp (mm)</div><input type="number" id="ld_comp" step="0.1" oninput="computeVolumes();render()" placeholder="0"></div>
+          <div><div class="lbl">Larg (mm)</div><input type="number" id="ld_larg" step="0.1" oninput="computeVolumes();render()" placeholder="0"></div>
+          <div><div class="lbl">Esp (mm)</div><input type="number" id="ld_esp" step="0.1" oninput="computeVolumes();render()" placeholder="0"></div>
+        </div>
+        <div style="margin-top:4px"><div class="lbl">Volume LD</div><div class="calc-val" id="vol_ld">— ml</div></div>
+      </div>
+      <!-- Lobo Esquerdo -->
+      <div>
+        <div class="sec-minor">Lobo Esquerdo</div>
+        <div class="row c3">
+          <div><div class="lbl">Comp (mm)</div><input type="number" id="le_comp" step="0.1" oninput="computeVolumes();render()" placeholder="0"></div>
+          <div><div class="lbl">Larg (mm)</div><input type="number" id="le_larg" step="0.1" oninput="computeVolumes();render()" placeholder="0"></div>
+          <div><div class="lbl">Esp (mm)</div><input type="number" id="le_esp" step="0.1" oninput="computeVolumes();render()" placeholder="0"></div>
+        </div>
+        <div style="margin-top:4px"><div class="lbl">Volume LE</div><div class="calc-val" id="vol_le">— ml</div></div>
+      </div>
+    </div>
+    <div class="row c3" style="margin-top:10px">
+      <div><div class="lbl">Volume Total</div><div class="calc-val" id="vol_total">— ml</div></div>
+      <div><div class="lbl">Status Volumétrico</div><div class="calc-val" id="vol_status">—</div></div>
+      <div><div class="lbl">Istmo (mm)</div><input type="number" id="istmo_esp" step="0.1" oninput="computeVolumes();render()" placeholder="≤3mm"></div>
+    </div>
+    <div style="margin-top:4px"><div class="lbl">Status Istmo</div><div class="calc-val" id="istmo_status">—</div></div>
+
+    <!-- Doppler Parênquima -->
+    <div class="sec" style="margin-top:14px">Doppler do Parênquima</div>
+    <div><div class="lbl">Vascularização difusa (Doppler colorido)</div>
+      <div class="chips" id="chips-doppler-par">
+        <div class="chip" data-id="dp_normal" onclick="toggleChipSingle(this,'doppler_par')">Normal</div>
+        <div class="chip" data-id="dp_aumentada1" onclick="toggleChipSingle(this,'doppler_par')">Aumentada grau I</div>
+        <div class="chip" data-id="dp_aumentada2" onclick="toggleChipSingle(this,'doppler_par')">Aumentada grau II</div>
+        <div class="chip" data-id="dp_aumentada3" onclick="toggleChipSingle(this,'doppler_par')">Aumentada grau III</div>
+        <div class="chip" data-id="dp_reduzida" onclick="toggleChipSingle(this,'doppler_par')">Reduzida</div>
+        <div class="chip" data-id="dp_ausente" onclick="toggleChipSingle(this,'doppler_par')">Ausente</div>
+      </div>
+    </div>
+    <div class="sec-minor" style="margin-top:12px">PSV — Artérias Tireoidianas Inferiores (Doppler pulsado)</div>
+    <div class="row c2" style="margin-top:4px">
+      <div>
+        <div class="lbl">ATI Direita (cm/s)</div>
+        <input type="number" id="psv_ati_d" step="0.1" min="0" oninput="render()" placeholder="ex: 20.0">
+        <div id="psv_ati_d_flag" style="font-size:10px;margin-top:2px"></div>
+      </div>
+      <div>
+        <div class="lbl">ATI Esquerda (cm/s)</div>
+        <input type="number" id="psv_ati_e" step="0.1" min="0" oninput="render()" placeholder="ex: 20.0">
+        <div id="psv_ati_e_flag" style="font-size:10px;margin-top:2px"></div>
+      </div>
+    </div>
+    <div style="font-size:10px;color:var(--dim);margin-top:2px">Normal: &lt; 40 cm/s · Valores ≥ 40–60 cm/s sugestivos de hipervascularização (Graves/tireoidite ativa)</div>
+
+    <!-- Linfonodos -->
+    <div class="sec" style="margin-top:14px">Linfonodos Cervicais</div>
+    <div id="linfonodos-container"></div>
+    <button class="tbtn" onclick="adicionarLinfonodo()" style="width:100%;margin-top:4px">+ Adicionar Linfonodo</button>
+
+    <!-- Nódulos -->
+    <div class="sec" style="margin-top:14px">Nódulos Tireoidianos</div>
+    <div id="nodulos-container"></div>
+    <button class="tbtn" onclick="adicionarNodulo()" style="width:100%;margin-top:4px">+ Adicionar Nódulo</button>
+  </div>
+
+  <!-- ABA 3: DESCRIÇÃO -->
+  <div class="tabcontent" id="tab2">
+    <div class="sec">Segmentos Anatômicos</div>
+    <div id="desc-segs"></div>
+    <div class="sec" style="margin-top:12px">Inserir Achado Estruturado</div>
+    <div class="row">
+      <div style="display:flex;gap:6px">
+        <select id="achado-select" style="flex:1">
+          <option value="">— Selecionar achado —</option>
+        </select>
+        <button class="tbtn primary" onclick="inserirAchado()" style="white-space:nowrap">Inserir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ABA 4: CONCLUSÃO -->
+  <div class="tabcontent" id="tab3">
+    <div class="sec">Chips de Conclusão Rápida</div>
+    <div class="concl-chips" id="concl-chips-container"></div>
+    <div class="sec" style="margin-top:12px">Texto da Conclusão</div>
+    <textarea id="concl-text" rows="8" oninput="render()" placeholder="Conclusão do exame..."></textarea>
+    <div class="sec" style="margin-top:12px">Comentários Adicionais</div>
+    <div class="comments-list" id="comments-list"></div>
+    <div class="sec" style="margin-top:12px">Assinatura</div>
+    <div class="row c2">
+      <div><div class="lbl">Nome (laudo)</div><input type="text" id="sig-name" oninput="render()" value="DRA. DIMONA MACÊDO"></div>
+      <div><div class="lbl">Especialidade</div><input type="text" id="sig-qual" oninput="render()" value="Endocrinologista"></div>
+    </div>
+    <div class="row"><div><div class="lbl">CRM / RQE (rodapé)</div><input type="text" id="sig-crmrqe" oninput="render()" value="CRM-BA 27.596 / RQE 17.530"></div></div>
+  </div>
+</div>
+
+<!-- PREVIEW PANE -->
+<div class="preview-pane" id="preview-pane">
+  <!-- A4 Página 1 -->
+  <div class="a4" id="a4p1">
+    <img class="bg" src="timbrado_encor.jpg" alt="">
+    <div class="content" id="a4p1-content">
+      <!-- renderizado por JS -->
+    </div>
+  </div>
+  <!-- A4 Página 2 (se necessário) -->
+  <div class="a4" id="a4p2" style="display:none">
+    <img class="bg" src="timbrado_encor.jpg" alt="">
+    <div class="content" id="a4p2-content"></div>
+  </div>
+</div>
+
+</div><!-- .main -->
+
+<!-- BANCO MODAL -->
+<div class="modal-overlay" id="modal-banco">
+  <div class="modal">
+    <button class="modal-close" onclick="fecharBanco()">✕</button>
+    <h2>Banco de Pacientes</h2>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <input type="text" id="banco-busca" placeholder="Buscar paciente..." style="flex:1" oninput="renderBanco()">
+      <button class="tbtn" onclick="exportarTodosJSON()">📤 Exportar todos</button>
+    </div>
+    <table class="banco-table">
+      <thead><tr><th>Paciente</th><th>Data</th><th>Convênio</th><th>Ações</th></tr></thead>
+      <tbody id="banco-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+/* =====================================================
+   DADOS CLÍNICOS
+===================================================== */
+const DESC_LIB = [
+  {key:'topog', titulo:'Topografia e morfologia geral',
+   def:'Glândula tireoide em posição habitual, com contornos regulares e dimensões normais para o sexo.'},
+  {key:'ecotex', titulo:'Ecotextura e ecogenicidade do parênquima',
+   def:'Parênquima com ecotextura homogênea e ecogenicidade preservada.'},
+  {key:'ld', titulo:'Lobo direito',
+   def:'Lobo direito com morfologia e dimensões normais.'},
+  {key:'le', titulo:'Lobo esquerdo',
+   def:'Lobo esquerdo com morfologia e dimensões normais.'},
+  {key:'istmo', titulo:'Istmo',
+   def:'Istmo com espessura normal.'},
+  {key:'nodulos', titulo:'Nódulos',
+   def:'Ausência de formações nodulares identificadas.'},
+  {key:'doppler', titulo:'Doppler colorido e pulsado',
+   def:'Vascularização parenquimatosa de distribuição e intensidade normais.'},
+  {key:'linfo', titulo:'Linfonodos cervicais',
+   def:'Linfonodos cervicais de aspecto habitual nas cadeias avaliadas.'},
+  {key:'adj', titulo:'Estruturas adjacentes',
+   def:'Traqueia de posição mediana. Estruturas adjacentes sem alterações significativas ao exame.'}
+];
+
+const FINDINGS_LIB = [
+  {id:'tireoidite_hashi', seg:'ecotex', label:'Tireoidite de Hashimoto',
+   desc:'Parênquima com ecotextura heterogênea e ecogenicidade globalmente reduzida, com aspecto pseudonodular difuso e septos hiperecogênicos, compatível com processo tireoidítico crônico autoimune (padrão de Hashimoto).',
+   concl:'Alterações parenquimatosas difusas compatíveis com tireoidite crônica autoimune (Hashimoto). Correlacionar com perfil tireoidiano (TSH, T4L, Anti-TPO).'},
+  {id:'bocio_difuso', seg:'topog', label:'Bócio difuso',
+   desc:'Glândula tireoide com aumento volumétrico difuso, mantendo contornos regulares e ecotextura homogênea.',
+   concl:'Bócio difuso. Correlação clínico-laboratorial recomendada.'},
+  {id:'bocio_multinodular', seg:'topog', label:'Bócio multinodular',
+   desc:'Glândula tireoide com aumento volumétrico e múltiplas formações nodulares bilaterais de características descritas abaixo.',
+   concl:'Bócio multinodular. Classificação TI-RADS e conduta individualizadas por nódulo.'},
+  {id:'hipervascularizacao', seg:'doppler', label:'Hipervascularização difusa (Graves)',
+   desc:'Hipervascularização parenquimatosa difusa ao Doppler colorido, com padrão de "inferno tireoidiano", sugestivo de doença de Graves/tireoidite em fase ativa.',
+   concl:'Hipervascularização difusa da tireoide ao Doppler. Correlacionar com função tireoidiana e anticorpos (TRAb, Anti-TPO).'},
+  {id:'linfo_suspeito', seg:'linfo', label:'Linfonodo suspeito',
+   desc:'Na cadeia avaliada, identifica-se linfonodo com perda do hilo ecogênico e cortical espessada, aspecto suspeito para comprometimento neoplásico.',
+   concl:'Linfonodo suspeito. Correlacionar com histórico e considerar avaliação complementar.'},
+  {id:'tireoide_ectopica', seg:'topog', label:'Hemiagenesia/Ectopia tireoidiana',
+   desc:'Ausência do lobo tireoidiano em sua topografia habitual. Hemiagenesia tireoidiana.',
+   concl:'Hemiagenesia tireoidiana. Correlação cintilográfica recomendada.'},
+  {id:'paratireoide', seg:'adj', label:'Nódulo paratireoidiano',
+   desc:'Identificada formação nodular hipoecóica, ovalada, posteriormente ao lobo, topograficamente compatível com paratireoide aumentada.',
+   concl:'Imagem sugestiva de paratireoide aumentada. Correlacionar com PTH e cálcio sérico.'}
+];
+
+const CONCL_CHIPS = [
+  {id:'cc_normal', l:'Tireoide de aspecto ultrassonográfico normal'},
+  {id:'cc_reduzida', l:'Tireoide reduzida de volume'},
+  {id:'cc_bocio', l:'Bócio (volume aumentado)'},
+  {id:'cc_heterog', l:'Heterogeneidade parenquimatosa difusa'},
+  {id:'cc_tireoidite', l:'Padrão compatível com tireoidite crônica'},
+  {id:'cc_tireoidite_subaguda', l:'Alteração parenquimatosa focal e vascularização sugestivos de tireoidite subaguda'},
+  {id:'cc_nodulo_s', l:'Nódulo tireoidiano'},
+  {id:'cc_nodulo_p', l:'Nódulos tireoidianos'},
+  {id:'cc_linfo_suspeito_s', l:'Linfonodo suspeito — ver descrição'},
+  {id:'cc_linfo_suspeito_p', l:'Linfonodos suspeitos — ver descrição'},
+  {id:'cc_corr_lab', l:'Correlação laboratorial recomendada'}
+];
+
+const COMMENTS = [
+  {id:'corr_clinica', active:true,
+   text:'Os achados ecográficos devem ser correlacionados com o quadro clínico, exames laboratoriais (TSH, T4 livre, Anti-TPO, TRAb) e história pregressa.'},
+  {id:'tirads_nota', active:true,
+   text:'A classificação TI-RADS ACR (2017) é utilizada para estratificação de risco de malignidade e orientação de conduta. O acompanhamento ou biópsia deve ser definido em conjunto com o médico assistente.'},
+  {id:'pos_tireoidectomia', active:false,
+   text:'Estudo realizado em contexto de tireoidectomia prévia. A ausência de loja tireoidiana é esperada. Tecido residual descrito quando identificado.'},
+  {id:'limitacao_tecnica', active:false,
+   text:'Limitação técnica. Exame realizado dentro das possibilidades diagnósticas.'}
+];
+
+/* =====================================================
+   STATE
+===================================================== */
+const LS_KEY = 'encor_thyro_patients_v1';
+let descState = {};
+let chipsState = {historico:{}, doppler_par:{}, linfonodos:{}, linfo_asp:{}};
+let conclChipsState = {};
+let commentsState = {};
+let nodulosState = [];
+let nodIdCount = 0;
+let linfoState = [];
+let linfoIdCount = 0;
+
+/* =====================================================
+   INIT
+===================================================== */
+function init() {
+  document.getElementById('data').value = new Date().toISOString().split('T')[0];
+  
+  // DESC_LIB
+  DESC_LIB.forEach(s => { descState[s.key] = {text: s.def, open: true}; });
+  
+  // COMMENTS
+  COMMENTS.forEach(c => { commentsState[c.id] = c.active; });
+  
+  // CONCL CHIPS
+  CONCL_CHIPS.forEach(c => { conclChipsState[c.id] = false; });
+  
+  buildDescSegs();
+  buildConclChips();
+  buildComments();
+  buildAchadoSelect();
+  renderLinfonodos();
+  computeVolumes();
+  // Padrão inicial: tireoide normal
+  const conclEl = document.getElementById('concl-text');
+  if (conclEl) conclEl.value = 'Tireoide de aspecto ultrassonográfico normal.';
+  render();
+}
+
+/* =====================================================
+   TABS
+===================================================== */
+function setTab(n) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===n));
+  document.querySelectorAll('.tabcontent').forEach((t,i) => t.classList.toggle('active', i===n));
+}
+
+/* =====================================================
+   CHIPS
+===================================================== */
+function toggleChip(el, group) {
+  const id = el.dataset.id;
+  chipsState[group][id] = !chipsState[group][id];
+  el.classList.toggle('on', chipsState[group][id]);
+  render();
+}
+function toggleChipSingle(el, group) {
+  const container = el.closest('.chips');
+  container.querySelectorAll('.chip').forEach(c => {
+    c.classList.remove('on');
+    chipsState[group][c.dataset.id] = false;
+  });
+  chipsState[group][el.dataset.id] = true;
+  el.classList.add('on');
+  render();
+}
+
+/* =====================================================
+   VOLUMETRIA
+===================================================== */
+function calcVolLobo(c, l, e) {
+  if (!c||!l||!e) return null;
+  return parseFloat(((c*l*e*0.523)/1000).toFixed(1));
+}
+function gradeVolume(vol, sexo) {
+  if (vol===null) return null;
+  const lim = sexo==='M' ? [18,25] : [15,18];
+  if (vol<=lim[0]) return 'normal';
+  if (vol<=lim[1]) return 'limítrofe';
+  return 'bócio';
+}
+function computeVolumes() {
+  const g = id => parseFloat(document.getElementById(id).value)||0;
+  const sexo = document.getElementById('sexo').value;
+  const vld = calcVolLobo(g('ld_comp'),g('ld_larg'),g('ld_esp'));
+  const vle = calcVolLobo(g('le_comp'),g('le_larg'),g('le_esp'));
+  const vtot = (vld!==null && vle!==null) ? parseFloat((vld+vle).toFixed(1)) : null;
+  
+  const el_vld = document.getElementById('vol_ld');
+  const el_vle = document.getElementById('vol_le');
+  const el_vt = document.getElementById('vol_total');
+  const el_vs = document.getElementById('vol_status');
+  const el_ist = document.getElementById('istmo_status');
+  const istmo = parseFloat(document.getElementById('istmo_esp').value)||0;
+  
+  el_vld.textContent = vld!==null ? vld+' ml' : '— ml';
+  el_vle.textContent = vle!==null ? vle+' ml' : '— ml';
+  el_vt.textContent = vtot!==null ? vtot+' ml' : '— ml';
+  
+  if (vtot!==null) {
+    const st = gradeVolume(vtot, sexo);
+    el_vs.textContent = st==='normal'?'Normal':st==='limítrofe'?'Limítrofe':('Bócio');
+    el_vs.className = 'calc-val'+(st==='bócio'?' warn':st==='limítrofe'?' warn':'');
+    el_vt.className = 'calc-val'+(st==='bócio'?' warn':'');
+  } else { el_vs.textContent='—'; el_vs.className='calc-val'; }
+  
+  if (istmo>0) {
+    el_ist.textContent = istmo<=3 ? 'Normal (≤3mm)' : istmo<=4 ? 'Limítrofe' : 'Espessado (>4mm)';
+    el_ist.className = 'calc-val'+(istmo>4?' warn':'');
+  } else { el_ist.textContent='—'; el_ist.className='calc-val'; }
+  
+  updateAutoConclusion();
+  render();
+}
+
+/* =====================================================
+   TI-RADS
+===================================================== */
+function calcTIRADS(nod) {
+  const total = (nod.comp_pts||0)+(nod.ecog_pts||0)+(nod.forma_pts||0)+(nod.margens_pts||0)+(nod.focos_pts||0);
+  const cat = total===0?'TR1':total<=2?'TR2':total===3?'TR3':total<=6?'TR4':'TR5';
+  const maiorEixo = Math.max(nod.eixo_c||0, nod.eixo_l||0, nod.eixo_e||0);
+  return {total, cat, conduta: tiradsConduta(cat, maiorEixo)};
+}
+function tiradsConduta(cat, mm) {
+  const t = {
+    TR1:'Sem acompanhamento necessário.',
+    TR2:'Sem indicação de PAAF.',
+    TR3: mm>=25?'PAAF recomendada.':mm>=15?'Acompanhamento em 1–3 anos.':'Sem conduta específica.',
+    TR4: mm>=15?'PAAF recomendada.':mm>=10?'Acompanhamento em 6–12 meses.':'Sem conduta específica.',
+    TR5: mm>=10?'PAAF recomendada.':mm>=5?'Acompanhamento em 6 meses.':'Sem conduta específica.'
+  };
+  return t[cat]||'';
+}
+function trClass(cat) {
+  return cat==='TR1'?'tr-1':cat==='TR2'?'tr-2':cat==='TR3'?'tr-3':cat==='TR4'?'tr-4':'tr-5';
+}
+function trColor(cat) {
+  const map={TR1:'#2ecc71',TR2:'#27ae60',TR3:'#f39c12',TR4:'#e67e22',TR5:'#e74c3c'};
+  return map[cat]||'#888';
+}
+
+/* =====================================================
+   NÓDULOS
+===================================================== */
+function adicionarNodulo() {
+  const id = ++nodIdCount;
+  nodulosState.push({id, lobo:'D', polo:'Terço médio', locat:'',
+    eixo_c:0, eixo_l:0, eixo_e:0,
+    comp_pts:0, ecog_pts:0, forma_pts:0, margens_pts:0, focos_pts:0,
+    comp_label:'', ecog_label:'', forma_label:'', margens_label:'', focos_label:'',
+    doppler_fluxo:'', ir:'', ip:''
+  });
+  renderNodulos();
+  updateAutoConclusion();
+  render();
+}
+function removerNodulo(id) {
+  nodulosState = nodulosState.filter(n=>n.id!==id);
+  renderNodulos();
+  updateAutoConclusion();
+  render();
+}
+
+/* =====================================================
+   LINFONODOS
+===================================================== */
+const CADEIAS_OPTS = ['II-D','III-D','IV-D','V-D','VI','II-E','III-E','IV-E','V-E'];
+
+function adicionarLinfonodo() {
+  const id = ++linfoIdCount;
+  linfoState.push({id, cadeia:'II-D', aspecto:'habitual', comp:0, larg:0});
+  renderLinfonodos();
+  render();
+}
+
+function removerLinfonodo(id) {
+  linfoState = linfoState.filter(l=>l.id!==id);
+  renderLinfonodos();
+  updateAutoConclusion();
+  render();
+}
+
+function setLinfo(id, field, val) {
+  const l = linfoState.find(l=>l.id===id);
+  if (!l) return;
+  l[field] = val;
+  // Campos numéricos (comp, larg): só atualiza estado e laudo — não reconstrói cards,
+  // evitando que o cursor saia do input durante a digitação.
+  if (field === 'comp' || field === 'larg') {
+    updateAutoConclusion();
+    render();
+  } else {
+    renderLinfonodos();
+    updateAutoConclusion();
+    render();
+  }
+}
+
+function renderLinfonodos() {
+  const cont = document.getElementById('linfonodos-container');
+  if (!cont) return;
+  cont.innerHTML = linfoState.map((l,i) => `
+    <div class="nod-card" style="margin-bottom:8px">
+      <div class="nod-header">
+        <span class="nod-badge">Linfonodo ${i+1}</span>
+        <button class="nod-del" onclick="removerLinfonodo(${l.id})">✕</button>
+      </div>
+      <div class="row c2">
+        <div><div class="lbl">Cadeia</div>
+          <select onchange="setLinfo(${l.id},'cadeia',this.value)">
+            ${CADEIAS_OPTS.map(c=>`<option value="${c}" ${l.cadeia===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+        </div>
+        <div><div class="lbl">Aspecto</div>
+          <select onchange="setLinfo(${l.id},'aspecto',this.value)">
+            <option value="habitual" ${l.aspecto==='habitual'?'selected':''}>Aspecto habitual</option>
+            <option value="suspeito" ${l.aspecto==='suspeito'?'selected':''}>Suspeito</option>
+          </select>
+        </div>
+      </div>
+      <div class="row c2">
+        <div><div class="lbl">Comp (mm)</div>
+          <input type="number" step="0.1" value="${l.comp||''}" oninput="setLinfo(${l.id},'comp',parseFloat(this.value)||0)" placeholder="0">
+        </div>
+        <div><div class="lbl">Larg (mm)</div>
+          <input type="number" step="0.1" value="${l.larg||''}" oninput="setLinfo(${l.id},'larg',parseFloat(this.value)||0)" placeholder="0">
+        </div>
+      </div>
+      ${l.aspecto==='suspeito'?`<div style="font-size:10px;color:var(--warn);margin-top:4px">⚠ Linfonodo suspeito — será destacado na conclusão</div>`:''}
+    </div>`).join('');
+}
+
+function renderNodulos() {
+  const cont = document.getElementById('nodulos-container');
+  cont.innerHTML = nodulosState.map((n,i) => {
+    const tr = calcTIRADS(n);
+    return `
+    <div class="nod-card" id="nod-card-${n.id}">
+      <div class="nod-header">
+        <span class="nod-badge">Nódulo ${i+1}</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="tirads-badge ${trClass(tr.cat)}">${tr.cat} (${tr.total} pts)</span>
+          <button class="nod-del" onclick="removerNodulo(${n.id})">✕</button>
+        </div>
+      </div>
+      <div class="row c3">
+        <div><div class="lbl">Lobo</div>
+          <select onchange="setNod(${n.id},'lobo',this.value)">
+            <option value="D" ${n.lobo==='D'?'selected':''}>Direito</option>
+            <option value="E" ${n.lobo==='E'?'selected':''}>Esquerdo</option>
+            <option value="Istmo" ${n.lobo==='Istmo'?'selected':''}>Istmo</option>
+          </select>
+        </div>
+        <div><div class="lbl">Polo</div>
+          <select onchange="setNod(${n.id},'polo',this.value)">
+            <option>Terço superior</option><option selected>Terço médio</option><option>Terço inferior</option>
+          </select>
+        </div>
+        <div><div class="lbl">Local.</div>
+          <input type="text" value="${n.locat}" oninput="setNod(${n.id},'locat',this.value)" placeholder="Ex: anterior">
+        </div>
+      </div>
+      <div class="row c3">
+        <div><div class="lbl">Comp (mm)</div><input type="number" step="0.1" value="${n.eixo_c||''}" oninput="setNod(${n.id},'eixo_c',parseFloat(this.value)||0);computeVolNod(${n.id})"></div>
+        <div><div class="lbl">Larg (mm)</div><input type="number" step="0.1" value="${n.eixo_l||''}" oninput="setNod(${n.id},'eixo_l',parseFloat(this.value)||0);computeVolNod(${n.id})"></div>
+        <div><div class="lbl">Esp (mm)</div><input type="number" step="0.1" value="${n.eixo_e||''}" oninput="setNod(${n.id},'eixo_e',parseFloat(this.value)||0);computeVolNod(${n.id})"></div>
+      </div>
+      <div class="row"><div><div class="lbl">Volume Nódulo</div><div class="calc-val" id="vol-nod-${n.id}">${n.volNod?n.volNod+' ml':'— ml'}</div></div></div>
+
+      <div class="sec-minor" style="margin-top:8px">TI-RADS ACR — Pontuação</div>
+      <div class="row">
+        <div><div class="lbl">Composição</div>
+          <div class="chips">
+            ${tiradChips(n.id,'comp',[['Cística/espongiforme',0],['Mista',1],['Sólida/quase sólida',2]],n.comp_pts)}
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div><div class="lbl">Ecogenicidade</div>
+          <div class="chips">
+            ${tiradChips(n.id,'ecog',[['Anecóico',0],['Hiperecogênico',1],['Isoecoico',1],['Hipoecoico',2],['Muito hipoecoico',3]],n.ecog_pts)}
+          </div>
+        </div>
+      </div>
+      <div class="row c2">
+        <div><div class="lbl">Forma</div>
+          <div class="chips">
+            ${tiradChips(n.id,'forma',[['Largura>Altura',0],['Altura>Largura',3]],n.forma_pts)}
+          </div>
+        </div>
+        <div><div class="lbl">Margens</div>
+          <div class="chips">
+            ${tiradChips(n.id,'margens',[['Lisas/indefinidas',0],['Lobuladas/irregulares',2],['Extensão extratireoidiana',3]],n.margens_pts)}
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div><div class="lbl">Focos Ecogênicos</div>
+          <div class="chips">
+            ${tiradChips(n.id,'focos',[['Nenhum/cauda cometa',0],['Macrocalcificações',1],['Calcificação periférica',2],['Puntiformes',3]],n.focos_pts)}
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:6px">
+        <span class="tirads-badge ${trClass(tr.cat)}" style="font-size:12px">${tr.cat} — ${tr.total} pontos</span>
+        <div class="tirads-conduta">${tr.conduta}</div>
+      </div>
+
+      <div class="sec-minor" style="margin-top:8px">Doppler do Nódulo</div>
+      <div class="row">
+        <div><div class="lbl">Padrão de fluxo</div>
+          <div class="chips">
+            ${dopplerChips(n.id,[['Ausente','ausente'],['Perinodular','perinodular'],['Intranodular predominante','intranodular'],['Misto','misto']],n.doppler_fluxo)}
+          </div>
+        </div>
+      </div>
+      <div class="row c2">
+        <div><div class="lbl">IR (0–1.00)</div>
+          <input type="number" step="0.01" min="0" max="1" value="${n.ir||''}" oninput="setNod(${n.id},'ir',this.value);render()" placeholder="ex: 0.65"
+            style="border-color:${n.ir&&parseFloat(n.ir)>0.8?'var(--warn)':''}">
+          ${n.ir&&parseFloat(n.ir)>0.8?'<div style="font-size:10px;color:var(--warn)">⚠ IR elevado (>0.80)</div>':''}
+        </div>
+        <div><div class="lbl">IP (0–3.00)</div>
+          <input type="number" step="0.01" min="0" max="3" value="${n.ip||''}" oninput="setNod(${n.id},'ip',this.value);render()" placeholder="ex: 1.10"
+            style="border-color:${n.ip&&parseFloat(n.ip)>1.6?'var(--warn)':''}">
+          ${n.ip&&parseFloat(n.ip)>1.6?'<div style="font-size:10px;color:var(--warn)">⚠ IP elevado (>1.60)</div>':''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function tiradChips(nodId, cat, opts, curPts) {
+  return opts.map(([label,pts]) =>
+    `<div class="chip ${curPts===pts&&curPts!==undefined?'on':''}" onclick="setNodTirad(${nodId},'${cat}',${pts},'${label}')">${label} (${pts})</div>`
+  ).join('');
+}
+function dopplerChips(nodId, opts, curVal) {
+  return opts.map(([label,val]) =>
+    `<div class="chip ${curVal===val?'on':''}" onclick="setNodDoppler(${nodId},'${val}')">${label}</div>`
+  ).join('');
+}
+function setNod(id, field, val) {
+  const n = nodulosState.find(n=>n.id===id);
+  if (n) { n[field]=val; render(); }
+}
+function setNodTirad(nodId, cat, pts, label) {
+  const n = nodulosState.find(n=>n.id===nodId);
+  if (!n) return;
+  n[cat+'_pts'] = pts;
+  n[cat+'_label'] = label;
+  renderNodulos();
+  render();
+}
+function setNodDoppler(nodId, val) {
+  const n = nodulosState.find(n=>n.id===nodId);
+  if (!n) return;
+  n.doppler_fluxo = val;
+  renderNodulos();
+  render();
+}
+function computeVolNod(nodId) {
+  const n = nodulosState.find(n=>n.id===nodId);
+  if (!n) return;
+  const v = (n.eixo_c&&n.eixo_l&&n.eixo_e) ? parseFloat(((n.eixo_c*n.eixo_l*n.eixo_e*0.523)/1000).toFixed(2)) : null;
+  n.volNod = v;
+  const el = document.getElementById('vol-nod-'+nodId);
+  if (el) el.textContent = v!==null ? v+' ml' : '— ml';
+  render();
+}
+
+/* =====================================================
+   DESC SEGS
+===================================================== */
+function buildDescSegs() {
+  const cont = document.getElementById('desc-segs');
+  cont.innerHTML = DESC_LIB.map(s => `
+    <div class="desc-seg" id="dseg-${s.key}">
+      <div class="seg-header" onclick="toggleDescSeg('${s.key}')">
+        <span class="seg-title">${s.titulo}</span>
+        <span class="seg-toggle" id="dtog-${s.key}">${descState[s.key].open?'▲':'▼'}</span>
+      </div>
+      <div id="dseg-body-${s.key}" style="display:${descState[s.key].open?'block':'none'}">
+        <textarea oninput="descState['${s.key}'].text=this.value;render()"
+          id="dtxt-${s.key}">${descState[s.key].text}</textarea>
+      </div>
+    </div>`).join('');
+}
+function toggleDescSeg(key) {
+  descState[key].open = !descState[key].open;
+  document.getElementById('dseg-body-'+key).style.display = descState[key].open?'block':'none';
+  document.getElementById('dtog-'+key).textContent = descState[key].open?'▲':'▼';
+}
+
+function buildAchadoSelect() {
+  const sel = document.getElementById('achado-select');
+  FINDINGS_LIB.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f.id;
+    opt.textContent = f.label;
+    sel.appendChild(opt);
+  });
+}
+function inserirAchado() {
+  const id = document.getElementById('achado-select').value;
+  if (!id) return;
+  const f = FINDINGS_LIB.find(x=>x.id===id);
+  if (!f) return;
+  const el = document.getElementById('dtxt-'+f.seg);
+  if (el) { el.value = f.desc; descState[f.seg].text = f.desc; }
+  const cc = document.getElementById('concl-text');
+  if (cc) {
+    cc.value = (cc.value ? cc.value+'\n' : '') + f.concl;
+    render();
+  }
+  render();
+}
+
+/* =====================================================
+   CONCLUSÃO
+===================================================== */
+function buildConclChips() {
+  const cont = document.getElementById('concl-chips-container');
+  cont.innerHTML = CONCL_CHIPS.map(c => `
+    <div class="concl-chip ${conclChipsState[c.id]?'on':''}" data-id="${c.id}" onclick="toggleConclChip(this)">${c.l}</div>
+  `).join('');
+}
+function toggleConclChip(el) {
+  const id = el.dataset.id;
+  conclChipsState[id] = !conclChipsState[id];
+  el.classList.toggle('on', conclChipsState[id]);
+  // Sync to textarea
+  const active = CONCL_CHIPS.filter(c=>conclChipsState[c.id]).map(c=>c.l);
+  document.getElementById('concl-text').value = active.map(l => l.endsWith('.')?l:l+'.').join('\n');
+  render();
+}
+
+function buildComments() {
+  const cont = document.getElementById('comments-list');
+  cont.innerHTML = COMMENTS.map(c => `
+    <div class="comment-item">
+      <input type="checkbox" id="comm-${c.id}" ${commentsState[c.id]?'checked':''} onchange="commentsState['${c.id}']=this.checked;render()">
+      <label for="comm-${c.id}">${c.text}</label>
+    </div>`).join('');
+}
+
+/* =====================================================
+   RENDER LAUDO A4
+===================================================== */
+function getVal(id, def='') { const el=document.getElementById(id); return el?el.value.trim()||def:def; }
+function getVolVal(id) { const el=document.getElementById(id); return el?el.textContent:'—'; }
+
+function render() {
+  const paciente = getVal('paciente','—');
+  const idade = getVal('idade','—');
+  const sexo = getVal('sexo','F')==='F'?'Feminino':'Masculino';
+  const data = getVal('data'); const dataBr = data?data.split('-').reverse().join('/'):'—';
+  const convenio = getVal('convenio','Particular');
+  const solicitante = getVal('solicitante','—');
+  const executante = getVal('executante','DR. GENIUS COSTA');
+  const crmrqe = getVal('crmrqe','');
+  const indicacao = getVal('indicacao','');
+  const sigName = getVal('sig-name','DR. GENIUS COSTA');
+  const sigQual = getVal('sig-qual','Médico Radiologista');
+  const sigCrm = getVal('sig-crmrqe','');
+  const numEx = getVal('numExame','');
+  
+  // Volumes
+  const vld = getVolVal('vol_ld'); const vle = getVolVal('vol_le');
+  const vtot = getVolVal('vol_total');
+  const g = id => parseFloat(document.getElementById(id)?.value)||0;
+  const ldStr = g('ld_comp')>0 ? `${g('ld_comp')} × ${g('ld_larg')} × ${g('ld_esp')} mm` : '—';
+  const leStr = g('le_comp')>0 ? `${g('le_comp')} × ${g('le_larg')} × ${g('le_esp')} mm` : '—';
+  const istmoV = g('istmo_esp');
+  
+  // Histórico
+  const hist = Object.entries(chipsState.historico).filter(([k,v])=>v).map(([k])=>k.replace('ht_','').replace(/_/g,' ')).join(', ')||'Não informado';
+  
+  // Doppler parênquima
+  const dpPar = Object.entries(chipsState.doppler_par).find(([k,v])=>v)?.[0]?.replace('dp_','').replace(/_/g,' ')||'';
+  
+  // Nódulos tabela
+  let nodulosTabela = '';
+  if (nodulosState.length>0) {
+    nodulosTabela = `
+    <table class="tirads-table">
+      <thead><tr><th>#</th><th>Localização</th><th>Composição</th><th>Ecogenicidade</th><th>Forma</th><th>Margens</th><th>Focos</th><th>Medidas (mm)</th><th>TI-RADS</th></tr></thead>
+      <tbody>
+      ${nodulosState.map((n,i) => {
+        const tr = calcTIRADS(n);
+        return `<tr>
+          <td>N${i+1}</td>
+          <td>${n.lobo==='Istmo' ? 'Istmo' : (n.polo||'') + ' Lobo ' + (n.lobo==='D'?'Direito':'Esquerdo')}</td>
+          <td>${n.comp_label||'—'}</td>
+          <td>${n.ecog_label||'—'}</td>
+          <td>${n.forma_label||'—'}</td>
+          <td>${n.margens_label||'—'}</td>
+          <td>${n.focos_label||'—'}</td>
+          <td>${n.eixo_c&&n.eixo_l&&n.eixo_e?n.eixo_c+' × '+n.eixo_l+' × '+n.eixo_e:'—'}</td>
+          <td style="font-weight:700;color:${trColor(tr.cat)}">${tr.cat}</td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table>`;
+  }
+  
+  // Doppler nódulos
+  let dopplerNodulosText = '';
+  nodulosState.forEach((n,i)=>{
+    if (n.doppler_fluxo||n.ir||n.ip) {
+      const parts = [];
+      if (n.doppler_fluxo) parts.push(`fluxo ${n.doppler_fluxo}`);
+      if (n.ir) parts.push(`IR: ${n.ir}${parseFloat(n.ir)>0.8?' (↑)':''}`);
+      if (n.ip) parts.push(`IP: ${n.ip}${parseFloat(n.ip)>1.6?' (↑)':''}`);
+      dopplerNodulosText += `N${i+1}: ${parts.join(', ')}. `;
+    }
+  });
+
+  // PSV das artérias tireoidianas inferiores
+  const psvD = parseFloat(document.getElementById('psv_ati_d')?.value)||0;
+  const psvE = parseFloat(document.getElementById('psv_ati_e')?.value)||0;
+  const flagD = document.getElementById('psv_ati_d_flag');
+  const flagE = document.getElementById('psv_ati_e_flag');
+  if (flagD) flagD.innerHTML = psvD>0 ? (psvD>=40 ? `<span style="color:var(--warn)">⚠ Elevado (≥40 cm/s)</span>` : `<span style="color:var(--calc)">✓ Normal</span>`) : '';
+  if (flagE) flagE.innerHTML = psvE>0 ? (psvE>=40 ? `<span style="color:var(--warn)">⚠ Elevado (≥40 cm/s)</span>` : `<span style="color:var(--calc)">✓ Normal</span>`) : '';
+  let psvText = '';
+  if (psvD>0||psvE>0) {
+    const parts = [];
+    if (psvD>0) parts.push(`ATI direita: ${psvD} cm/s${psvD>=40?' (↑)':''}`);
+    if (psvE>0) parts.push(`ATI esquerda: ${psvE} cm/s${psvE>=40?' (↑)':''}`);
+    psvText = ` Doppler pulsado das artérias tireoidianas inferiores: ${parts.join(', ')}.`;
+  }
+  
+  // Comentários
+  const commentsActive = COMMENTS.filter(c=>commentsState[c.id]).map(c=>c.text);
+  
+  // Linfonodos — compor texto automático a partir de linfoState
+  let linfoAutoText = '';
+  if (linfoState.length > 0) {
+    const por_aspecto = {habitual:[], suspeito:[]};
+    linfoState.forEach(l => {
+      const asp = l.aspecto || 'habitual';
+      if (!por_aspecto[asp]) por_aspecto[asp] = [];
+      por_aspecto[asp].push(l);
+    });
+    const partes = [];
+    if (por_aspecto.habitual.length) {
+      const cadeias = por_aspecto.habitual.map(l=>{
+        const med = l.comp&&l.larg ? ` (${l.comp}×${l.larg} mm)` : '';
+        return `cadeia ${l.cadeia}${med}`;
+      }).join(', ');
+      partes.push(`Linfonodos de aspecto habitual nas cadeias: ${cadeias}`);
+    }
+    if (por_aspecto.suspeito.length) {
+      por_aspecto.suspeito.forEach(l => {
+        const med = l.comp&&l.larg ? ` medindo ${l.comp}×${l.larg} mm` : '';
+        partes.push(`Linfonodo na cadeia ${l.cadeia}${med} com perda do hilo ecogênico e/ou cortical espessada, aspecto suspeito`);
+      });
+    }
+    linfoAutoText = partes.join('. ')+'.';
+  }
+
+  // Nódulos — descrição automática por nódulo no segmento 'nodulos'
+  let nodulosDescText = '';
+  if (nodulosState.length > 0) {
+    nodulosDescText = nodulosState.map((n, i) => {
+      const tr = calcTIRADS(n);
+      const loc = n.lobo==='Istmo' ? `Istmo${n.locat?' ('+n.locat+')':''}` : `${n.polo ? n.polo + ' do ' : ''}lobo ${n.lobo==='D'?'direito':'esquerdo'}${n.locat?' ('+n.locat+')':''}`;
+      const med = (n.eixo_c && n.eixo_l && n.eixo_e) ? ` medindo ${n.eixo_c} × ${n.eixo_l} × ${n.eixo_e} mm` : '';
+      const parts = [];
+      if (n.comp_label) parts.push(n.comp_label.toLowerCase());
+      if (n.ecog_label) parts.push(n.ecog_label.toLowerCase());
+      if (n.forma_label) parts.push(`forma ${n.forma_label.toLowerCase()}`);
+      if (n.margens_label) parts.push(`margens ${n.margens_label.toLowerCase()}`);
+      if (n.focos_label && n.focos_label !== 'Nenhum/cauda cometa') parts.push(n.focos_label.toLowerCase());
+      const caract = parts.length ? `, ${parts.join(', ')}` : '';
+      return `N${i+1}: Nódulo no ${loc}${med}${caract}. Classificado como ${tr.cat} (${tr.total} pontos).`;
+    }).join(' ');
+  }
+
+  const conclText = document.getElementById('concl-text')?.value||'';
+
+  // DESC segs
+  const temNods = nodulosState.length > 0;
+  const descBlocks = DESC_LIB.map(s => {
+    let txt = descState[s.key]?.text || s.def;
+
+    // Topografia: bócio — suprime "difuso" quando há nódulos
+    if (s.key==='topog') {
+      const sexoNow2 = document.getElementById('sexo')?.value||'F';
+      const g2 = id => parseFloat(document.getElementById(id)?.value)||0;
+      const vld2 = calcVolLobo(g2('ld_comp'),g2('ld_larg'),g2('ld_esp'));
+      const vle2 = calcVolLobo(g2('le_comp'),g2('le_larg'),g2('le_esp'));
+      const vtot2 = (vld2!==null && vle2!==null) ? parseFloat((vld2+vle2).toFixed(1)) : null;
+      const grade2 = vtot2!==null ? gradeVolume(vtot2, sexoNow2) : null;
+      if (grade2 === 'bócio') {
+        const lim2 = sexoNow2==='M' ? 18 : 15;
+        const qualif = temNods ? 'com aumento volumétrico' : 'com aumento volumétrico difuso';
+        txt = `Glândula tireoide ${qualif} (volume total: ${vtot2} ml, acima do limite de ${lim2} ml para o sexo ${sexoNow2==='M'?'masculino':'feminino'}), contornos regulares, em posição habitual.`;
+      }
+    }
+
+    // Ecotextura: combina achado estruturado (se houver) com presença de nódulos
+    if (s.key==='ecotex' && temNods) {
+      const suf = nodulosState.length === 1 ? 'nódulo tireoidiano' : 'nódulos tireoidianos';
+      const txtBase = descState['ecotex']?.text || s.def;
+      const isDefault = txtBase === s.def;
+      if (isDefault) {
+        // Sem achado inserido: descrição simples de nódulos
+        txt = `Parênquima com ecotextura heterogênea às custas de ${suf}.`;
+      } else {
+        // Achado estruturado presente (ex: Hashimoto, Graves, tireoidite subaguda):
+        // integra a menção ao(s) nódulo(s) na frase, substituindo o ponto final
+        const baseClean = txtBase.replace(/\.\s*$/, '');
+        txt = `${baseClean}, destacando-se a presença de ${suf}.`;
+      }
+    } else if (s.key==='ecotex' && !temNods) {
+      // Sem nódulos: mantém o texto do achado ou o padrão
+      txt = descState['ecotex']?.text || s.def;
+    }
+
+    if (s.key==='ld' && ldStr!=='—') txt = `Lobo direito medindo ${ldStr} (Volume: ${vld}). `+txt;
+    if (s.key==='le' && leStr!=='—') txt = `Lobo esquerdo medindo ${leStr} (Volume: ${vle}). `+txt;
+    if (s.key==='istmo' && istmoV>0) txt = `Istmo com espessura de ${istmoV} mm. `+(istmoV>4?'Espessamento istmico presente. ':'');
+
+    // Doppler: prefixo de padrão selecionado; suprime "sem hipervascularização difusa" se normal
+    if (s.key==='doppler') {
+      const dpNormal = chipsState.doppler_par?.['dp_normal'];
+      if (dpPar && !dpNormal) txt = `Vascularização parenquimatosa ${dpPar} ao Doppler colorido. `+txt;
+      else if (dpNormal) txt = 'Vascularização parenquimatosa de distribuição e intensidade normais.';
+      if (dopplerNodulosText) txt += ` Doppler dos nódulos: ${dopplerNodulosText}`;
+      if (psvText) txt += psvText;
+    }
+
+    if (s.key==='linfo' && linfoAutoText) txt = linfoAutoText;
+    if (s.key==='nodulos' && nodulosDescText) txt = nodulosDescText;
+    return `<div class="desc-bloco"><span class="desc-titulo">${s.titulo}: </span><span class="desc-texto">${txt}</span></div>`;
+  }).join('');
+
+  const html = `
+    <div class="laudo-title">ULTRASSONOGRAFIA DE TIREOIDE COM DOPPLER</div>
+    <div class="laudo-dados">
+      <div class="dado-row"><span class="dado-label">Paciente:</span><span class="dado-val">&nbsp;${paciente}</span></div>
+      <div class="dado-row"><span class="dado-label">Data:</span><span class="dado-val">&nbsp;${dataBr}${numEx?' &nbsp;|&nbsp; Nº '+numEx:''}</span></div>
+      <div class="dado-row"><span class="dado-label">Idade:</span><span class="dado-val">&nbsp;${idade} anos &nbsp;|&nbsp; ${sexo}</span></div>
+      <div class="dado-row"><span class="dado-label">Convênio:</span><span class="dado-val">&nbsp;${convenio}</span></div>
+      <div class="dado-row"><span class="dado-label">Solicitante:</span><span class="dado-val">&nbsp;${solicitante}</span></div>
+      <div class="dado-row"><span class="dado-label">Executante:</span><span class="dado-val">&nbsp;${executante}${crmrqe?' — '+crmrqe:''}</span></div>
+    </div>
+    ${indicacao ? `<div class="dado-indicacao"><span class="dado-label">Indicação: </span>${indicacao}</div>` : ''}
+    <hr class="laudo-divider">
+    
+    <div class="sec-titulo">Técnica</div>
+    <p style="font-size:8pt;color:#333;margin-bottom:2mm;line-height:1.4">Exame realizado por equipamento digital com transdutor linear de alta frequência (5–12 MHz), através de varreduras longitudinais e transversais em múltiplos segmentos, com técnica de reconstrução de imagem bidimensional, Doppler colorido e Doppler pulsado.</p>
+    
+    ${(vld!=='— ml'||vle!=='— ml'||vtot!=='— ml') ? `
+    <div class="sec-titulo">Medidas</div>
+    <table class="medidas-tabela">
+      <thead><tr><th>Estrutura</th><th>Comp (mm)</th><th>Larg (mm)</th><th>Esp (mm)</th><th>Volume (ml)</th></tr></thead>
+      <tbody>
+        <tr><td><b>Lobo Direito</b></td><td>${g('ld_comp')||'—'}</td><td>${g('ld_larg')||'—'}</td><td>${g('ld_esp')||'—'}</td><td>${vld}</td></tr>
+        <tr><td><b>Lobo Esquerdo</b></td><td>${g('le_comp')||'—'}</td><td>${g('le_larg')||'—'}</td><td>${g('le_esp')||'—'}</td><td>${vle}</td></tr>
+        <tr><td><b>Istmo</b></td><td colspan="3">${istmoV>0?'Espessura: '+istmoV+' mm':'—'}</td><td>—</td></tr>
+      </tbody>
+    </table>
+    <div class="vol-resumo">Volume total estimado: ${vtot} ${document.getElementById('vol_status')?.textContent?'('+document.getElementById('vol_status').textContent+')':''}</div>
+    ` : ''}
+    
+    ${nodulosState.length>0 ? `
+    <div class="sec-titulo">Classificação TI-RADS (ACR 2017)</div>
+    ${nodulosTabela}
+    ` : ''}
+    
+    <hr class="laudo-divider">
+    <div class="sec-titulo">Descrição</div>
+    ${descBlocks}
+    
+    <hr class="laudo-divider">
+    <div class="sec-titulo">Conclusão</div>
+    <div class="concl-texto">${conclText ? conclText.split('\n').map(l=>l.trim()).filter(Boolean).map(l=>`<p style="margin:0 0 1.5mm">${l}</p>`).join('') : '<i style="color:#aaa">Conclusão não preenchida.</i>'}</div>
+    
+    ${commentsActive.length?`<div class="obs-texto">${commentsActive.map(c=>`*${c}`).join('<br>')}</div>`:''}
+    
+    <div class="sig-area">
+      <div class="sig-block">
+        <div class="sig-line"></div>
+        <div class="sig-name">${sigName}</div>
+        <div class="sig-qual">${sigQual}</div>
+        ${sigCrm?`<div class="sig-qual">${sigCrm}</div>`:''}
+      </div>
+    </div>
+    <div class="brandfoot">ENCOR - NÚCLEO DE ENDOCRINOLOGIA E CARDIOLOGIA<br>Este laudo é de uso exclusivo médico e deve ser interpretado em conjunto com as imagens do exame.</div>
+  `;
+  
+  document.getElementById('a4p1-content').innerHTML = html;
+  // Dois frames: 1° pinta o DOM, 2° garante reflow de fontes/imagens
+  requestAnimationFrame(() => requestAnimationFrame(() => splitPages(sigName, sigQual, sigCrm)));
+}
+
+/* =====================================================
+   SISTEMA DE MULTIPÁGINAS
+   Estratégia: medir conteúdo num ghost-div sem altura fixa.
+   usableH é calculado geometricamente (não via DOM constrangido).
+===================================================== */
+function splitPages(sigName, sigQual, sigCrm) {
+  const p1      = document.getElementById('a4p1');
+  const p1cont  = document.getElementById('a4p1-content');
+
+  // ── Altura útil em px ───────────────────────────────────────────────────
+  // A4 = 297mm. padding CSS = 38mm top + 22mm bot = 60mm usado por timbrado.
+  // Convertemos mm→px usando a largura real do elemento (210mm → clientWidth px).
+  const mmToPx  = p1.clientWidth / 210;          // px por mm
+  const pageHpx = Math.round(297 * mmToPx);      // altura física da folha em px
+  const padTop  = Math.round(38  * mmToPx);
+  const padBot  = Math.round(22  * mmToPx);
+  const usableH = pageHpx - padTop - padBot;     // área de texto disponível
+
+  // ── Ghost div: mesma largura do content, SEM height nem overflow ────────
+  const contentW = p1cont.clientWidth;           // largura já dentro do padding lateral
+  const ghost = document.createElement('div');
+  ghost.style.cssText = [
+    'position:fixed', 'top:0', 'left:-9999px',
+    'visibility:hidden', 'pointer-events:none',
+    `width:${contentW}px`,
+    'height:auto', 'overflow:visible',
+    'padding:0', 'margin:0',
+    'font-family:inherit', 'font-size:inherit',
+    'color:transparent'
+  ].join(';');
+  document.body.appendChild(ghost);
+
+  // ── Coletar blocos (exclui sig-area e brandfoot) ─────────────────────────
+  const blocks = Array.from(p1cont.children);
+
+  // Margem de segurança: 10mm antes do corte (evita conteúdo colado no fundo)
+  const SAFE_MARGIN = Math.round(25 * mmToPx);
+  const safeH = usableH - SAFE_MARGIN;
+
+  const pages = [[]];
+  let   pidx  = 0;
+
+  for (const block of blocks) {
+    // Mede o acumulado COM o bloco candidato já inserido.
+    // Isso captura collapse de margens CSS corretamente.
+    ghost.innerHTML = '';
+    pages[pidx].forEach(b => ghost.appendChild(b.cloneNode(true)));
+    ghost.appendChild(block.cloneNode(true));
+    const heightWithBlock = ghost.scrollHeight;
+
+    if (heightWithBlock > safeH && pages[pidx].length > 0) {
+      pidx++;
+      pages.push([]);
+    }
+    pages[pidx].push(block);
+  }
+
+  document.body.removeChild(ghost);
+
+  // ── Página 1 ─────────────────────────────────────────────────────────────
+  p1cont.innerHTML = '';
+  pages[0].forEach(b => p1cont.appendChild(b.cloneNode(true)));
+  if (pages.length > 1) {
+    p1cont.insertAdjacentHTML('beforeend',
+      `<div style="text-align:right;font-size:7pt;color:#999;padding-top:2mm">continua ›</div>`);
+  }
+
+  // ── Remove páginas extras anteriores ─────────────────────────────────────
+  const pane = document.getElementById('preview-pane');
+  pane.querySelectorAll('.a4.extra-page').forEach(el => el.remove());
+  document.getElementById('a4p2').style.display = 'none';
+
+  if (pages.length === 1) return;
+
+  // ── Páginas 2+ ───────────────────────────────────────────────────────────
+  for (let i = 1; i < pages.length; i++) {
+    const isLast  = (i === pages.length - 1);
+    const pageEl  = document.createElement('div');
+    pageEl.className = 'a4 extra-page';
+
+    const bgImg = document.createElement('img');
+    bgImg.className = 'bg'; bgImg.src = ENCOR_BG_B64;
+    pageEl.appendChild(bgImg);
+
+    const contEl = document.createElement('div');
+    contEl.className = 'content';
+    contEl.id = `a4p${i + 1}-content`;
+
+    contEl.insertAdjacentHTML('beforeend',
+      `<div style="font-size:7pt;color:#999;margin-bottom:3mm;padding-bottom:1mm;border-bottom:.5pt solid #ddd">
+         USG Tireoide com Doppler — continuação · Página ${i + 1}
+       </div>`);
+
+    pages[i].forEach(b => contEl.appendChild(b.cloneNode(true)));
+    if (!isLast) {
+      contEl.insertAdjacentHTML('beforeend',
+        `<div style="text-align:right;font-size:7pt;color:#999;padding-top:2mm">continua ›</div>`);
+    }
+
+    pageEl.appendChild(contEl);
+    pane.appendChild(pageEl);
+  }
+}
+
+function hideExtraPages() {
+  document.getElementById('a4p2').style.display = 'none';
+  document.getElementById('preview-pane').querySelectorAll('.a4.extra-page').forEach(el => el.remove());
+}
+
+/* =====================================================
+   PDF
+===================================================== */
+async function gerarPDF() {
+  const {jsPDF} = window.jspdf;
+  const pdf = new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  
+  // Coleta todas as páginas A4 visíveis (p1 + extras)
+  const previewPane = document.getElementById('preview-pane');
+  const pages = [document.getElementById('a4p1'), ...previewPane.querySelectorAll('.a4.extra-page')];
+  
+  try {
+    for (let i = 0; i < pages.length; i++) {
+      const el = pages[i];
+      el.style.transform = 'none';
+      const canvas = await html2canvas(el, {scale:2, useCORS:true, backgroundColor:'#fff'});
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      if (i > 0) pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+    }
+    const pac = document.getElementById('paciente').value.trim().replace(/\s+/g,'_')||'Paciente';
+    const data = document.getElementById('data').value.replace(/-/g,'')||'';
+    pdf.save(`USG_Tireoide_ENCOR_${pac}_${data}.pdf`);
+  } catch(e) { alert('Erro ao gerar PDF: '+e.message); }
+}
+
+/* =====================================================
+   BANCO DE PACIENTES
+===================================================== */
+function patSnap() {
+  return {
+    paciente:getVal('paciente'), idade:getVal('idade'), sexo:getVal('sexo','F'),
+    data:getVal('data'), convenio:getVal('convenio'), solicitante:getVal('solicitante'),
+    executante:getVal('executante'), crmrqe:getVal('crmrqe'), numExame:getVal('numExame'),
+    indicacao:getVal('indicacao'),
+    ld_comp:getVal('ld_comp'), ld_larg:getVal('ld_larg'), ld_esp:getVal('ld_esp'),
+    le_comp:getVal('le_comp'), le_larg:getVal('le_larg'), le_esp:getVal('le_esp'),
+    istmo_esp:getVal('istmo_esp'), linfo_mm:getVal('linfo_mm'),
+    psv_ati_d:getVal('psv_ati_d'), psv_ati_e:getVal('psv_ati_e'),
+    descState:{...descState.map?descState:Object.fromEntries(Object.entries(descState).map(([k,v])=>[k,{...v}]))},
+    chipsState: JSON.parse(JSON.stringify(chipsState)),
+    conclChipsState:{...conclChipsState},
+    commentsState:{...commentsState},
+    nodulosState: JSON.parse(JSON.stringify(nodulosState)),
+    nodIdCount,
+    linfoState: JSON.parse(JSON.stringify(linfoState)),
+    linfoIdCount,
+    conclText:document.getElementById('concl-text')?.value||'',
+    sigName:getVal('sig-name'), sigQual:getVal('sig-qual'), sigCrm:getVal('sig-crmrqe')
+  };
+}
+function patRestore(snap) {
+  const s = (id,v) => { const el=document.getElementById(id); if(el) el.value=v||''; };
+  s('paciente',snap.paciente); s('idade',snap.idade); 
+  const sexoEl=document.getElementById('sexo'); if(sexoEl)sexoEl.value=snap.sexo||'F';
+  s('data',snap.data); s('convenio',snap.convenio); s('solicitante',snap.solicitante);
+  s('executante',snap.executante); s('crmrqe',snap.crmrqe); s('numExame',snap.numExame);
+  s('indicacao',snap.indicacao);
+  s('ld_comp',snap.ld_comp); s('ld_larg',snap.ld_larg); s('ld_esp',snap.ld_esp);
+  s('le_comp',snap.le_comp); s('le_larg',snap.le_larg); s('le_esp',snap.le_esp);
+  s('istmo_esp',snap.istmo_esp); s('linfo_mm',snap.linfo_mm);
+  s('psv_ati_d',snap.psv_ati_d||''); s('psv_ati_e',snap.psv_ati_e||'');
+  if(snap.descState) { Object.entries(snap.descState).forEach(([k,v])=>{ if(descState[k])descState[k]={...v}; }); buildDescSegs(); }
+  if(snap.chipsState) { chipsState=JSON.parse(JSON.stringify(snap.chipsState)); syncChipsUI(); }
+  if(snap.conclChipsState) { conclChipsState=snap.conclChipsState; buildConclChips(); }
+  if(snap.commentsState) { commentsState=snap.commentsState; buildComments(); }
+  if(snap.nodulosState) { nodulosState=JSON.parse(JSON.stringify(snap.nodulosState)); nodIdCount=snap.nodIdCount||nodulosState.length; renderNodulos(); }
+  if(snap.linfoState) { linfoState=JSON.parse(JSON.stringify(snap.linfoState)); linfoIdCount=snap.linfoIdCount||linfoState.length; renderLinfonodos(); }
+  if(snap.conclText!==undefined) s('concl-text',snap.conclText);
+  s('sig-name',snap.sigName||'DRA. DIMONA MACÊDO'); 
+  s('sig-qual',snap.sigQual||'Endocrinologista'); 
+  s('sig-crmrqe',snap.sigCrm||'CRM-BA 27.596 / RQE 17.530');
+  computeVolumes(); render();
+}
+function syncChipsUI() {
+  ['historico','doppler_par','linfonodos','linfo_asp'].forEach(group=>{
+    const selector = group==='historico'?'chips-historico':group==='doppler_par'?'chips-doppler-par':group==='linfonodos'?'chips-linfonodos':'chips-linfo-asp';
+    const cont = document.getElementById(selector);
+    if(!cont) return;
+    cont.querySelectorAll('.chip').forEach(c=>{
+      c.classList.toggle('on', !!chipsState[group]?.[c.dataset.id]);
+    });
+  });
+}
+function salvarPaciente() {
+  const snap = patSnap();
+  if (!snap.paciente) { alert('Informe o nome do paciente.'); return; }
+  const db = JSON.parse(localStorage.getItem(LS_KEY)||'[]');
+  const idx = db.findIndex(p=>p.id===snap.id);
+  snap.id = snap.id||Date.now();
+  snap.savedAt = new Date().toISOString();
+  if(idx>=0) db[idx]=snap; else db.push(snap);
+  localStorage.setItem(LS_KEY, JSON.stringify(db));
+  alert('Paciente salvo: '+snap.paciente);
+}
+function inserirIndicacao() {
+  const sel = document.getElementById('indicacao-select');
+  const val = sel.value;
+  if (!val) return;
+  const ta = document.getElementById('indicacao');
+  ta.value = val;
+  sel.value = '';
+  render();
+}
+
+function novoPaciente() {
+  if (!confirm('Limpar formulário e começar novo exame?')) return;
+  limparForm();
+}
+function limparForm() {
+  document.querySelectorAll('input[type=text],input[type=number],input[type=date],textarea').forEach(el=>{
+    if(!['executante','sig-name','sig-qual','crmrqe','sig-crmrqe'].includes(el.id)) el.value='';
+  });
+  document.getElementById('executante').value='DRA. DIMONA MACÊDO';
+  document.getElementById('crmrqe').value='CRM-BA 27.596 / RQE 17.530';
+  document.getElementById('sig-name').value='DRA. DIMONA MACÊDO';
+  document.getElementById('sig-qual').value='Endocrinologista';
+  document.getElementById('sig-crmrqe').value='CRM-BA 27.596 / RQE 17.530';
+  document.getElementById('data').value=new Date().toISOString().split('T')[0];
+  DESC_LIB.forEach(s=>{ descState[s.key]={text:s.def,open:true}; });
+  chipsState={historico:{},doppler_par:{},linfonodos:{},linfo_asp:{}};
+  CONCL_CHIPS.forEach(c=>conclChipsState[c.id]=false);
+  COMMENTS.forEach(c=>commentsState[c.id]=c.active);
+  nodulosState=[]; nodIdCount=0; linfoState=[]; linfoIdCount=0;
+  buildDescSegs(); buildConclChips(); buildComments(); syncChipsUI(); renderNodulos(); renderLinfonodos();
+  computeVolumes(); render();
+}
+function abrirBanco() {
+  document.getElementById('modal-banco').classList.add('open');
+  renderBanco();
+}
+function fecharBanco() { document.getElementById('modal-banco').classList.remove('open'); }
+function renderBanco() {
+  const busca = document.getElementById('banco-busca').value.toLowerCase();
+  const db = JSON.parse(localStorage.getItem(LS_KEY)||'[]');
+  const tbody = document.getElementById('banco-tbody');
+  const items = db.filter(p=>!busca||p.paciente?.toLowerCase().includes(busca));
+  tbody.innerHTML = items.length ? items.map(p=>`
+    <tr>
+      <td>${p.paciente||'—'}</td>
+      <td>${p.data?p.data.split('-').reverse().join('/'):'—'}</td>
+      <td>${p.convenio||'—'}</td>
+      <td>
+        <button onclick="carregarPaciente(${p.id})">📂 Abrir</button>
+        <button class="del" onclick="deletarPaciente(${p.id})">🗑</button>
+      </td>
+    </tr>`).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--dim)">Nenhum paciente salvo.</td></tr>';
+}
+function carregarPaciente(id) {
+  const db = JSON.parse(localStorage.getItem(LS_KEY)||'[]');
+  const p = db.find(x=>x.id===id);
+  if (p) { patRestore(p); fecharBanco(); }
+}
+function deletarPaciente(id) {
+  if (!confirm('Remover paciente do banco?')) return;
+  let db = JSON.parse(localStorage.getItem(LS_KEY)||'[]');
+  db = db.filter(x=>x.id!==id);
+  localStorage.setItem(LS_KEY, JSON.stringify(db));
+  renderBanco();
+}
+function exportarJSON() {
+  const snap = patSnap();
+  const blob = new Blob([JSON.stringify(snap,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='USG_Tireoide_ENCOR_'+(snap.paciente||'exame')+'.json'; a.click();
+}
+function exportarTodosJSON() {
+  const db = localStorage.getItem(LS_KEY)||'[]';
+  const blob = new Blob([db],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='banco_thyro_encor.json'; a.click();
+}
+function importarJSON() {
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='.json';
+  inp.onchange=e=>{
+    const file=e.target.files[0]; if(!file)return;
+    const r=new FileReader();
+    r.onload=ev=>{ try { patRestore(JSON.parse(ev.target.result)); } catch(x){ alert('Arquivo inválido.'); }};
+    r.readAsText(file);
+  };
+  inp.click();
+}
+
+// close modal on overlay click
+document.getElementById('modal-banco').addEventListener('click', function(e){if(e.target===this)fecharBanco();});
+
+/* =====================================================
+   AUTO-CONCLUSÃO — chamada só quando dados mudam, nunca durante digitação
+===================================================== */
+// Linhas que são gerenciadas automaticamente (só estas podem ser tocadas)
+const AUTO_CONCL_LINES = [
+  'Tireoide de aspecto ultrassonográfico normal.',
+  'Nódulo tireoidiano.',
+  'Nódulos tireoidianos.',
+  'Linfonodo suspeito — ver descrição.',
+  'Linfonodos suspeitos — ver descrição.',
+  'Bócio difuso.',
+  'Bócio multinodular.'
+];
+
+function updateAutoConclusion() {
+  const conclEl = document.getElementById('concl-text');
+  if (!conclEl) return;
+
+  // Detectar bócio
+  const sexoNow = document.getElementById('sexo')?.value||'F';
+  const g = id => parseFloat(document.getElementById(id)?.value)||0;
+  const vld = calcVolLobo(g('ld_comp'),g('ld_larg'),g('ld_esp'));
+  const vle = calcVolLobo(g('le_comp'),g('le_larg'),g('le_esp'));
+  const vtot = (vld!==null && vle!==null) ? parseFloat((vld+vle).toFixed(1)) : null;
+  const gradeNow = vtot!==null ? gradeVolume(vtot, sexoNow) : null;
+  const temBocio = gradeNow === 'bócio';
+  const bocioLine = nodulosState.length > 0 ? 'Bócio multinodular.' : 'Bócio difuso.';
+
+  // Linhas automáticas que devem estar presentes agora
+  // Determine if there are any alterations
+  const nLinfoSusp = linfoState.filter(l => l.aspecto === 'suspeito').length;
+  const temNodulo = nodulosState.length > 0;
+  const temAlteracao = temNodulo || nLinfoSusp > 0 || temBocio;
+
+  const shouldHave = [];
+  // "Normal" only when no alterations detected
+  if (!temAlteracao) shouldHave.push('Tireoide de aspecto ultrassonográfico normal.');
+  if (nodulosState.length === 1) shouldHave.push('Nódulo tireoidiano.');
+  if (nodulosState.length > 1)  shouldHave.push('Nódulos tireoidianos.');
+  if (nLinfoSusp === 1) shouldHave.push('Linfonodo suspeito — ver descrição.');
+  if (nLinfoSusp > 1)  shouldHave.push('Linfonodos suspeitos — ver descrição.');
+  if (temBocio)        shouldHave.push(bocioLine);
+
+  // Pega texto atual, separa em linhas
+  const lines = conclEl.value.split('\n').map(l => l.trim()).filter(Boolean);
+
+  // Remove linhas automáticas que não se aplicam mais
+  const kept = lines.filter(l => {
+    if (AUTO_CONCL_LINES.includes(l) && !shouldHave.includes(l)) return false;
+    return true;
+  });
+
+  // Adiciona linhas automáticas que ainda não estão presentes
+  shouldHave.forEach(line => {
+    if (!kept.includes(line)) kept.unshift(line); // insere no início
+  });
+
+  conclEl.value = kept.join('\n');
+}
+
+// ENCOR letterhead for dynamic pages
+
+const ENCOR_BG_B64 = "timbrado_encor.jpg";
+
+// INIT
+init();
+</script>
+</body>
+</html>
